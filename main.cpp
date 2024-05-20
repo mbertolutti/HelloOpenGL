@@ -1,17 +1,20 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 
 // Vertex Shader source code
 const char* vertexShaderSource = R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor;
 uniform mat4 transform;
+out vec3 ourColor;
 void main() {
     gl_Position = transform * vec4(aPos, 1.0);
+    ourColor = aColor;
 }
 )";
 
@@ -19,8 +22,9 @@ void main() {
 const char* fragmentShaderSource = R"(
 #version 330 core
 out vec4 FragColor;
+in vec3 ourColor;
 void main() {
-    FragColor = vec4(1.0, 0.5, 0.2, 1.0);
+    FragColor = vec4(ourColor, 1.0);
 }
 )";
 
@@ -41,7 +45,7 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Create a windowed mode window and its OpenGL context
-    GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL Triangle", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(800, 600, "OpenGL Triangles", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -102,9 +106,18 @@ int main() {
 
     // Set up vertex data and buffers and configure vertex attributes
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f, // left
-         0.5f, -0.5f, 0.0f, // right
-         0.0f,  0.5f, 0.0f  // top
+        // positions         // colors
+        -0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f, // first triangle, red
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
+         0.0f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
+
+        -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f, // second triangle, green
+         0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
+         0.0f,  0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
+
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f, // third triangle, blue
+         0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,
+         0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f
     };
 
     unsigned int VBO, VAO;
@@ -117,8 +130,12 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    // Color attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // Unbind VBO (it's a good thing to unbind any buffer/array to prevent accidental modifications)
     glBindBuffer(GL_ARRAY_BUFFER, 0); 
@@ -137,18 +154,25 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Create transformations
-        glm::mat4 transform = glm::mat4(1.0f);
-        transform = glm::rotate(transform, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
-
-        // Get matrix's uniform location and set matrix
+        // Draw first triangle
+        glm::mat4 transform1 = glm::mat4(1.0f);
+        transform1 = glm::rotate(transform1, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
         unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
         glUseProgram(shaderProgram);
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
-
-        // Draw the triangle
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform1));
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // Draw second triangle
+        glm::mat4 transform2 = glm::mat4(1.0f);
+        transform2 = glm::rotate(transform2, (float)glfwGetTime() * 0.5f, glm::vec3(0.0f, 0.0f, 1.0f));
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform2));
+        glDrawArrays(GL_TRIANGLES, 3, 3);
+        // Draw third triangle
+        glm::mat4 transform3 = glm::mat4(1.0f);
+        transform3 = glm::rotate(transform3, (float)glfwGetTime() * 1.5f, glm::vec3(0.0f, 0.0f, 1.0f));
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform3));
+        glDrawArrays(GL_TRIANGLES, 6, 3);
 
         // Swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
