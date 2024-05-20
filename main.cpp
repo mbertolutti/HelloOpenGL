@@ -1,13 +1,17 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 // Vertex Shader source code
 const char* vertexShaderSource = R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;
+uniform mat4 transform;
 void main() {
-    gl_Position = vec4(aPos, 1.0);
+    gl_Position = transform * vec4(aPos, 1.0);
 }
 )";
 
@@ -133,8 +137,16 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Draw the triangle
+        // Create transformations
+        glm::mat4 transform = glm::mat4(1.0f);
+        transform = glm::rotate(transform, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+
+        // Get matrix's uniform location and set matrix
+        unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
         glUseProgram(shaderProgram);
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+
+        // Draw the triangle
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
